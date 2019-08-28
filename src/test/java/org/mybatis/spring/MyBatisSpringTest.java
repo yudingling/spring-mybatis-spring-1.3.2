@@ -562,7 +562,7 @@ public final class MyBatisSpringTest extends AbstractMyBatisSpringTest {
 
       session.getMapper(TestMapper.class).insertTest("test1");
       session.getMapper(TestMapper.class).insertTest("test2");
-      session.update("org.mybatis.spring.TestMapper.insertFail");
+      session.update("org.mybatis.spring.TestMapper.insertFail", null);
       session.getMapper(TestMapper.class).insertTest("test3");
 
       session.commit(true);
@@ -590,7 +590,7 @@ public final class MyBatisSpringTest extends AbstractMyBatisSpringTest {
 
     session.getMapper(TestMapper.class).insertTest("test1");
     session.getMapper(TestMapper.class).insertTest("test2");
-    session.update("org.mybatis.spring.TestMapper.insertFail");
+    session.update("org.mybatis.spring.TestMapper.insertFail", null);
     session.getMapper(TestMapper.class).insertTest("test3");
 
     SqlSessionUtils.closeSqlSession(session, sqlSessionFactory);

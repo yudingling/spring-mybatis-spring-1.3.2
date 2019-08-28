@@ -125,7 +125,7 @@ public class MyBatisBatchItemWriter<T> implements ItemWriter<T>, InitializingBea
       }
 
       for (T item : items) {
-        sqlSessionTemplate.update(statementId, item);
+        sqlSessionTemplate.update(statementId, item, null);
       }
 
       List<BatchResult> results = sqlSessionTemplate.flushStatements();

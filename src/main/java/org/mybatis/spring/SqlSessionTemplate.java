@@ -40,6 +40,8 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.dao.support.PersistenceExceptionTranslator;
 
+import com.zeasn.common.ext1.datasync.mybatis.DbSyncParam;
+
 /**
  * Thread safe, Spring managed, {@code SqlSession} that works with Spring
  * transaction management to ensure that that the actual SqlSession used is the
@@ -266,48 +268,48 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
    * {@inheritDoc}
    */
   @Override
-  public int insert(String statement) {
-    return this.sqlSessionProxy.insert(statement);
+  public int insert(String statement, DbSyncParam syncParam) {
+    return this.sqlSessionProxy.insert(statement, syncParam);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public int insert(String statement, Object parameter) {
-    return this.sqlSessionProxy.insert(statement, parameter);
+  public int insert(String statement, Object parameter, DbSyncParam syncParam) {
+    return this.sqlSessionProxy.insert(statement, parameter, syncParam);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public int update(String statement) {
-    return this.sqlSessionProxy.update(statement);
+  public int update(String statement, DbSyncParam syncParam) {
+    return this.sqlSessionProxy.update(statement, syncParam);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public int update(String statement, Object parameter) {
-    return this.sqlSessionProxy.update(statement, parameter);
+  public int update(String statement, Object parameter, DbSyncParam syncParam) {
+    return this.sqlSessionProxy.update(statement, parameter, syncParam);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public int delete(String statement) {
-    return this.sqlSessionProxy.delete(statement);
+  public int delete(String statement, DbSyncParam syncParam) {
+    return this.sqlSessionProxy.delete(statement, syncParam);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public int delete(String statement, Object parameter) {
-    return this.sqlSessionProxy.delete(statement, parameter);
+  public int delete(String statement, Object parameter, DbSyncParam syncParam) {
+    return this.sqlSessionProxy.delete(statement, parameter, syncParam);
   }
 
   /**

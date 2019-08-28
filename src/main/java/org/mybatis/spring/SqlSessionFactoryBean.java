@@ -55,6 +55,9 @@ import org.springframework.core.NestedIOException;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
+import com.zeasn.common.ext1.datasync.ISyncSender;
+import com.zeasn.common.ext1.datasync.SyncTemplate;
+
 /**
  * {@code FactoryBean} that creates an MyBatis {@code SqlSessionFactory}.
  * This is the usual way to set up a shared MyBatis {@code SqlSessionFactory} in a Spring application context;
@@ -120,8 +123,20 @@ public class SqlSessionFactoryBean implements FactoryBean<SqlSessionFactory>, In
   private ObjectFactory objectFactory;
 
   private ObjectWrapperFactory objectWrapperFactory;
+  
+  private SyncTemplate template;
+  private ISyncSender sender;
 
-  /**
+  
+  public void setTemplate(SyncTemplate template) {
+	this.template = template;
+  }
+
+  public void setSender(ISyncSender sender) {
+	this.sender = sender;
+  }
+
+/**
    * Sets the ObjectFactory.
    *
    * @since 1.1.2
@@ -507,7 +522,7 @@ public class SqlSessionFactoryBean implements FactoryBean<SqlSessionFactory>, In
       this.transactionFactory = new SpringManagedTransactionFactory();
     }
 
-    configuration.setEnvironment(new Environment(this.environment, this.transactionFactory, this.dataSource));
+    configuration.setEnvironment(new Environment(this.environment, this.transactionFactory, this.dataSource, this.template, this.sender));
 
     if (!isEmpty(this.mapperLocations)) {
       for (Resource mapperLocation : this.mapperLocations) {
