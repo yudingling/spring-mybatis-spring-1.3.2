@@ -107,6 +107,8 @@
 		<osgi.import>org.springframework.batch.*;resolution:=optional,*</osgi.import>
 		<osgi.dynamicImport>*</osgi.dynamicImport>
 		<spring.version>4.3.14.RELEASE</spring.version>
+		<maven.compiler.testTarget>1.8</maven.compiler.testTarget>
+		<maven.compiler.testSource>1.8</maven.compiler.testSource>
 		<skipTests>true</skipTests>
 	</properties>
 
