@@ -28,9 +28,12 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.exceptions.PersistenceException;
 import org.apache.ibatis.executor.BatchResult;
+import org.apache.ibatis.logging.Log;
+import org.apache.ibatis.logging.LogFactory;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.ResultHandler;
@@ -77,6 +80,7 @@ import com.zeasn.common.ext1.datasync.mybatis.DbSyncParam;
  * @see MyBatisExceptionTranslator
  */
 public class SqlSessionTemplate implements SqlSession, DisposableBean {
+	private static final Log log = LogFactory.getLog(SqlSessionInterceptor.class);
 
   private final SqlSessionFactory sqlSessionFactory;
 
@@ -424,39 +428,78 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
    * It also unwraps exceptions thrown by {@code Method#invoke(Object, Object...)} to
    * pass a {@code PersistenceException} to the {@code PersistenceExceptionTranslator}.
    */
-  private class SqlSessionInterceptor implements InvocationHandler {
-    @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-      SqlSession sqlSession = getSqlSession(
-          SqlSessionTemplate.this.sqlSessionFactory,
-          SqlSessionTemplate.this.executorType,
-          SqlSessionTemplate.this.exceptionTranslator);
-      try {
-        Object result = method.invoke(sqlSession, args);
-        if (!isSqlSessionTransactional(sqlSession, SqlSessionTemplate.this.sqlSessionFactory)) {
-          // force commit even on non-dirty sessions because some databases require
-          // a commit/rollback before calling close()
-          sqlSession.commit(true);
-        }
-        return result;
-      } catch (Throwable t) {
-        Throwable unwrapped = unwrapThrowable(t);
-        if (SqlSessionTemplate.this.exceptionTranslator != null && unwrapped instanceof PersistenceException) {
-          // release the connection to avoid a deadlock if the translator is no loaded. See issue #22
-          closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
-          sqlSession = null;
-          Throwable translated = SqlSessionTemplate.this.exceptionTranslator.translateExceptionIfPossible((PersistenceException) unwrapped);
-          if (translated != null) {
-            unwrapped = translated;
-          }
-        }
-        throw unwrapped;
-      } finally {
-        if (sqlSession != null) {
-          closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
-        }
-      }
-    }
-  }
+	private class SqlSessionInterceptor implements InvocationHandler {
+		private static final int MAX_RETRY_COUNT = 3;
+		
+		@Override
+		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+			int retryCount = 0;
+			Throwable prevException = null;
+			
+			// retry on exceptions like 'CommunicationsException'
+			while (!Thread.currentThread().isInterrupted() && retryCount++ <= MAX_RETRY_COUNT) {
+				
+				SqlSession sqlSession = getSqlSession(SqlSessionTemplate.this.sqlSessionFactory,
+						SqlSessionTemplate.this.executorType, SqlSessionTemplate.this.exceptionTranslator);
+				
+				try {
+					Object result = method.invoke(sqlSession, args);
+					if (!isSqlSessionTransactional(sqlSession, SqlSessionTemplate.this.sqlSessionFactory)) {
+						// force commit even on non-dirty sessions because some databases require
+						// a commit/rollback before calling close()
+						sqlSession.commit(true);
+					}
+					return result;
+					
+				} catch (Throwable t) {
+					Throwable unwrapped = unwrapThrowable(t);
+					
+					if(this.isRetryException(unwrapped)) {
+						log.warn("Retryable exception occurs, will retry 1 time, Cause: " + unwrapped);
+						prevException = unwrapped;
+						
+					}else {
+						if (SqlSessionTemplate.this.exceptionTranslator != null && unwrapped instanceof PersistenceException) {
+							// release the connection to avoid a deadlock if the translator is no loaded.
+							// See issue #22
+							closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
+							sqlSession = null;
+							
+							Throwable translated = SqlSessionTemplate.this.exceptionTranslator.translateExceptionIfPossible((PersistenceException) unwrapped);
+							if (translated != null) {
+								unwrapped = translated;
+							}
+						}
+						
+						throw unwrapped;
+					}
+					
+				}finally {
+					if (sqlSession != null) {
+						closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
+					}
+				}
+			}
+			
+			if(prevException != null) {
+				throw prevException;
+				
+			}else {
+				throw new RuntimeException("invoke failed");
+			}
+		}
+		
+		private boolean isRetryException(Throwable t) {
+			String msg = t.getMessage();
+			
+			if(StringUtils.isNotEmpty(msg)) {
+				if(msg.indexOf("CommunicationsException") >= 0 || msg.indexOf("Communications link failure") >= 0 || msg.indexOf("Communications") >= 0) {
+					return true;
+				}
+			}
+			
+			return false;
+		}
+	}
 
 }
