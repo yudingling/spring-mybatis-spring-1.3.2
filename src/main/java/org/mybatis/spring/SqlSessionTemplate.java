@@ -455,7 +455,7 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
 					Throwable unwrapped = unwrapThrowable(t);
 					
 					if(this.isRetryException(unwrapped)) {
-						log.warn("Retryable exception occurs, will retry 1 time, Cause: " + unwrapped);
+						log.warn("Retryable exception occurs, will retry "+ MAX_RETRY_COUNT +" time, Cause: " + unwrapped);
 						prevException = unwrapped;
 						
 					}else {
